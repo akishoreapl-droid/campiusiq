@@ -171,7 +171,7 @@ export async function commitImportBatch(
         attendance_percentage: item.attendancePercentage,
         backlogs: item.backlogs,
         risk_level: successScoreObj.riskLevel,
-        student_success_score: successScoreObj.score,
+        student_success_score: successScoreObj.successScore,
         placement_readiness_score: placementScoreObj.score,
       };
 

@@ -319,7 +319,7 @@ export async function fetchStudyTasksFromDb(userId?: string): Promise<StudyTask[
 
     return data.map((t: any) => ({
       id: t.id,
-      studentId: 'STU-2024-042',
+      studentId: t.student_id || 'STU-2024-042',
       title: t.title,
       subject: t.subject,
       topic: t.subject,
@@ -327,7 +327,7 @@ export async function fetchStudyTasksFromDb(userId?: string): Promise<StudyTask[
       priority: (t.priority?.toLowerCase() as any) || 'medium',
       estimatedMinutes: t.estimated_minutes || 45,
       status: t.completed ? 'completed' : 'pending',
-      source: 'student_custom',
+      source: 'student_created',
     }));
   } catch {
     return [];
@@ -391,14 +391,15 @@ export async function fetchQuizAttemptsFromDb(userId?: string): Promise<QuizAtte
 
     return data.map((q: any) => ({
       id: q.id,
+      studentId: q.student_id || q.user_id || 'STU-2024-042',
       subject: q.subject,
       topic: q.topic,
+      difficulty: (q.difficulty as any) || 'intermediate',
+      totalQuestions: q.total_questions || 5,
       score: q.score,
-      totalQuestions: q.total_questions,
       percentage: q.percentage,
-      date: q.completed_at ? q.completed_at.split('T')[0] : 'Today',
-      timeSpent: '5 mins',
-      weakAreas: q.percentage < 60 ? ['Review core definitions'] : [],
+      completedAt: q.completed_at || new Date().toISOString(),
+      answers: q.answers || {},
     }));
   } catch {
     return [];
@@ -485,10 +486,10 @@ export async function fetchFlashcardsFromDb(userId?: string): Promise<Flashcard[
       id: f.id,
       subject: f.subject,
       topic: f.topic,
-      question: f.question,
-      answer: f.answer,
+      front: f.front || f.question || '',
+      back: f.back || f.answer || '',
       mastery: (f.mastery as any) || 'learning',
-      lastReviewed: 'Recently',
+      lastReviewed: f.last_reviewed || 'Recently',
     }));
   } catch {
     return [];
@@ -503,8 +504,8 @@ export async function saveFlashcardToDb(card: Omit<Flashcard, 'id'>, userId?: st
         user_id: userId || null,
         subject: card.subject,
         topic: card.topic,
-        question: card.question,
-        answer: card.answer,
+        question: card.front,
+        answer: card.back,
         mastery: card.mastery,
       }])
       .select()
@@ -666,7 +667,7 @@ export async function authSignUp(params: {
   try {
     const { data, error } = await supabase.auth.signUp({
       email: params.email.trim(),
-      password,
+      password: params.password,
       options: {
         data: {
           name: params.name.trim(),
