@@ -1,6 +1,5 @@
 import React, { useState } from 'react';
 import { useApp } from '../../context/AppContext';
-import { UserRole } from '../../types';
 import { 
   GraduationCap, 
   ShieldAlert, 
@@ -12,46 +11,26 @@ import {
   Mail, 
   ArrowRight, 
   ShieldCheck, 
-  CheckCircle2, 
   Sparkles, 
-  MessageSquare, 
-  Database,
-  User as UserIcon,
-  Building,
-  Check
+  MessageSquare
 } from 'lucide-react';
 import { InquiryModal } from '../../components/inquiry/InquiryModal';
 
 export const LoginPage: React.FC = () => {
   const { 
     signIn, 
-    signUp, 
     isInquiryModalOpen, 
     inquiryDefaultType, 
     openInquiryModal, 
     closeInquiryModal 
   } = useApp();
 
-  const [authMode, setAuthMode] = useState<'signIn' | 'signUp'>('signIn');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [rememberMe, setRememberMe] = useState(true);
   const [loading, setLoading] = useState(false);
   const [errorMessage, setErrorMessage] = useState('');
-  const [successMessage, setSuccessMessage] = useState('');
-
-  // Sign-Up Specific Fields
-  const [fullName, setFullName] = useState('');
-  const [role, setRole] = useState<UserRole>('student');
-  const [department, setDepartment] = useState('Computer Science');
-  const [confirmPassword, setConfirmPassword] = useState('');
-
-  const switchMode = (mode: 'signIn' | 'signUp') => {
-    setAuthMode(mode);
-    setErrorMessage('');
-    setSuccessMessage('');
-  };
 
   const handleSignIn = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -62,7 +41,6 @@ export const LoginPage: React.FC = () => {
 
     setLoading(true);
     setErrorMessage('');
-    setSuccessMessage('');
 
     try {
       const res = await signIn(email.trim(), password);
@@ -71,55 +49,6 @@ export const LoginPage: React.FC = () => {
       }
     } catch (err: any) {
       setErrorMessage(err.message || 'An unexpected error occurred during sign in.');
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const handleSignUp = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!fullName.trim()) {
-      setErrorMessage('Please provide your full name.');
-      return;
-    }
-    if (!email.trim()) {
-      setErrorMessage('Please provide your institutional email address.');
-      return;
-    }
-    if (password.length < 6) {
-      setErrorMessage('Password must be at least 6 characters long.');
-      return;
-    }
-    if (password !== confirmPassword) {
-      setErrorMessage('Passwords do not match. Please verify and try again.');
-      return;
-    }
-
-    setLoading(true);
-    setErrorMessage('');
-    setSuccessMessage('');
-
-    try {
-      const res = await signUp({
-        email: email.trim(),
-        password,
-        name: fullName.trim(),
-        role,
-        department,
-      });
-
-      if (res.success) {
-        if (res.requiresEmailConfirmation) {
-          setSuccessMessage(
-            'Account created successfully! A confirmation email has been sent. Please verify your email before logging in (or confirm your account in Supabase).'
-          );
-          setAuthMode('signIn');
-        }
-      } else {
-        setErrorMessage(res.error || 'Registration failed. Please try again.');
-      }
-    } catch (err: any) {
-      setErrorMessage(err.message || 'An unexpected error occurred during registration.');
     } finally {
       setLoading(false);
     }
@@ -155,7 +84,7 @@ export const LoginPage: React.FC = () => {
 
           <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white/10 border border-white/15 text-xs text-emerald-300 font-medium mb-6">
             <Sparkles className="w-3.5 h-3.5" />
-            <span>Supabase Authenticated Production Portal</span>
+            <span>University Intelligence Production Portal</span>
           </div>
 
           <h1 className="font-display text-3xl sm:text-4xl lg:text-5xl font-extrabold tracking-tight text-white leading-tight mb-4">
@@ -224,51 +153,23 @@ export const LoginPage: React.FC = () => {
         </div>
       </div>
 
-      {/* ================= RIGHT PANEL: SUPABASE AUTHENTICATION ================= */}
+      {/* ================= RIGHT PANEL: AUTHENTICATION ================= */}
       <div className="lg:w-1/2 p-6 sm:p-12 lg:p-16 flex items-center justify-center">
-        <div className="w-full max-w-md space-y-5">
+        <div className="w-full max-w-md space-y-6">
           {/* Header */}
           <div>
-            <div className="flex items-center gap-2 mb-1.5">
-              <span className="inline-flex items-center gap-1 text-[10px] font-semibold uppercase px-2 py-0.5 rounded bg-emerald-100 text-emerald-800 border border-emerald-300">
-                <Database className="w-2.5 h-2.5 text-emerald-600" />
-                Supabase Auth
+            <div className="flex items-center gap-2 mb-2">
+              <span className="inline-flex items-center gap-1.5 text-[10px] font-semibold uppercase px-2.5 py-1 rounded bg-emerald-100 text-emerald-800 border border-emerald-300">
+                <Lock className="w-2.5 h-2.5 text-emerald-600" />
+                Secure Access
               </span>
             </div>
             <h2 className="text-2xl font-bold font-display text-[#192A27] tracking-tight">
-              {authMode === 'signIn' ? 'Institutional Sign-In' : 'Create CampusIQ Account'}
+              Institutional Sign-In
             </h2>
             <p className="text-xs text-[#6D7975] mt-1">
-              {authMode === 'signIn'
-                ? 'Authenticate securely using your Supabase registered account.'
-                : 'Register a new institutional profile with role-based access.'}
+              Authenticate securely using your campus credentials.
             </p>
-          </div>
-
-          {/* Mode Tabs */}
-          <div className="grid grid-cols-2 p-1 bg-[#E2E6E1]/50 rounded-xl text-xs font-semibold">
-            <button
-              type="button"
-              onClick={() => switchMode('signIn')}
-              className={`py-2 rounded-lg transition-all text-center ${
-                authMode === 'signIn'
-                  ? 'bg-white text-[#123D35] shadow-xs'
-                  : 'text-[#6D7975] hover:text-[#192A27]'
-              }`}
-            >
-              Sign In
-            </button>
-            <button
-              type="button"
-              onClick={() => switchMode('signUp')}
-              className={`py-2 rounded-lg transition-all text-center ${
-                authMode === 'signUp'
-                  ? 'bg-white text-[#123D35] shadow-xs'
-                  : 'text-[#6D7975] hover:text-[#192A27]'
-              }`}
-            >
-              Create Account
-            </button>
           </div>
 
           {/* Feedback Messages */}
@@ -278,223 +179,85 @@ export const LoginPage: React.FC = () => {
             </div>
           )}
 
-          {successMessage && (
-            <div className="p-3 text-xs bg-[#EBF7F1] text-[#27845B] border border-[#CCE8DA] rounded-lg animate-in fade-in flex items-start gap-2">
-              <Check className="w-4 h-4 shrink-0 mt-0.5" />
-              <span>{successMessage}</span>
-            </div>
-          )}
-
           {/* ================= SIGN IN FORM ================= */}
-          {authMode === 'signIn' && (
-            <form onSubmit={handleSignIn} className="space-y-4">
-              <div>
-                <label className="block text-xs font-semibold uppercase tracking-wider text-[#6D7975] mb-1.5">
-                  Campus Email Address
-                </label>
-                <div className="relative">
-                  <Mail className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-[#6D7975]" />
-                  <input
-                    type="email"
-                    required
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
-                    placeholder="e.g. user@campusiq.edu"
-                    className="w-full pl-9 pr-3.5 py-2.5 text-sm bg-white border border-[#E2E6E1] rounded-lg text-[#192A27] focus:outline-none focus:ring-2 focus:ring-[#16856B]/20 focus:border-[#16856B]"
-                  />
-                </div>
+          <form onSubmit={handleSignIn} className="space-y-4">
+            <div>
+              <label className="block text-xs font-semibold uppercase tracking-wider text-[#6D7975] mb-1.5">
+                Campus Email Address
+              </label>
+              <div className="relative">
+                <Mail className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-[#6D7975]" />
+                <input
+                  type="email"
+                  required
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  placeholder="e.g. user@campusiq.edu"
+                  className="w-full pl-9 pr-3.5 py-2.5 text-sm bg-white border border-[#E2E6E1] rounded-lg text-[#192A27] focus:outline-none focus:ring-2 focus:ring-[#16856B]/20 focus:border-[#16856B]"
+                />
               </div>
+            </div>
 
-              <div>
-                <div className="flex items-center justify-between mb-1.5">
-                  <label className="block text-xs font-semibold uppercase tracking-wider text-[#6D7975]">
-                    Password
-                  </label>
-                </div>
-                <div className="relative">
-                  <Lock className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-[#6D7975]" />
-                  <input
-                    type={showPassword ? 'text' : 'password'}
-                    required
-                    value={password}
-                    onChange={(e) => setPassword(e.target.value)}
-                    placeholder="••••••••"
-                    className="w-full pl-9 pr-10 py-2.5 text-sm bg-white border border-[#E2E6E1] rounded-lg text-[#192A27] focus:outline-none focus:ring-2 focus:ring-[#16856B]/20 focus:border-[#16856B]"
-                  />
-                  <button
-                    type="button"
-                    onClick={() => setShowPassword(!showPassword)}
-                    className="absolute right-3 top-1/2 -translate-y-1/2 text-[#6D7975] hover:text-[#192A27]"
-                  >
-                    {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-                  </button>
-                </div>
-              </div>
-
-              <div className="flex items-center justify-between">
-                <label className="flex items-center gap-2 cursor-pointer text-xs text-[#192A27]">
-                  <input
-                    type="checkbox"
-                    checked={rememberMe}
-                    onChange={(e) => setRememberMe(e.target.checked)}
-                    className="rounded border-[#E2E6E1] text-[#123D35] focus:ring-[#123D35]"
-                  />
-                  <span>Remember session token</span>
+            <div>
+              <div className="flex items-center justify-between mb-1.5">
+                <label className="block text-xs font-semibold uppercase tracking-wider text-[#6D7975]">
+                  Password
                 </label>
               </div>
-
-              <button
-                type="submit"
-                disabled={loading}
-                className="w-full py-2.5 px-4 bg-[#123D35] hover:bg-[#0B2925] text-white font-semibold text-sm rounded-lg shadow-sm transition-colors flex items-center justify-center gap-2 disabled:opacity-50"
-              >
-                {loading ? (
-                  <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                ) : (
-                  <>
-                    <span>Sign In with Supabase</span>
-                    <ArrowRight className="w-4 h-4" />
-                  </>
-                )}
-              </button>
-            </form>
-          )}
-
-          {/* ================= SIGN UP FORM ================= */}
-          {authMode === 'signUp' && (
-            <form onSubmit={handleSignUp} className="space-y-3.5">
-              <div>
-                <label className="block text-xs font-semibold uppercase tracking-wider text-[#6D7975] mb-1">
-                  Full Name *
-                </label>
-                <div className="relative">
-                  <UserIcon className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-[#6D7975]" />
-                  <input
-                    type="text"
-                    required
-                    value={fullName}
-                    onChange={(e) => setFullName(e.target.value)}
-                    placeholder="e.g. Dr. Priya Nair"
-                    className="w-full pl-9 pr-3.5 py-2 text-sm bg-white border border-[#E2E6E1] rounded-lg text-[#192A27] focus:outline-none focus:ring-2 focus:ring-[#16856B]/20 focus:border-[#16856B]"
-                  />
-                </div>
+              <div className="relative">
+                <Lock className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-[#6D7975]" />
+                <input
+                  type={showPassword ? 'text' : 'password'}
+                  required
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  placeholder="••••••••"
+                  className="w-full pl-9 pr-10 py-2.5 text-sm bg-white border border-[#E2E6E1] rounded-lg text-[#192A27] focus:outline-none focus:ring-2 focus:ring-[#16856B]/20 focus:border-[#16856B]"
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword(!showPassword)}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-[#6D7975] hover:text-[#192A27]"
+                  aria-label={showPassword ? 'Hide password' : 'Show password'}
+                >
+                  {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                </button>
               </div>
+            </div>
 
-              <div>
-                <label className="block text-xs font-semibold uppercase tracking-wider text-[#6D7975] mb-1">
-                  Institutional Email *
-                </label>
-                <div className="relative">
-                  <Mail className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-[#6D7975]" />
-                  <input
-                    type="email"
-                    required
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
-                    placeholder="e.g. priya.nair@campusiq.edu"
-                    className="w-full pl-9 pr-3.5 py-2 text-sm bg-white border border-[#E2E6E1] rounded-lg text-[#192A27] focus:outline-none focus:ring-2 focus:ring-[#16856B]/20 focus:border-[#16856B]"
-                  />
-                </div>
-              </div>
+            <div className="flex items-center justify-between pt-1">
+              <label className="flex items-center gap-2 cursor-pointer text-xs text-[#192A27]">
+                <input
+                  type="checkbox"
+                  checked={rememberMe}
+                  onChange={(e) => setRememberMe(e.target.checked)}
+                  className="rounded border-[#E2E6E1] text-[#123D35] focus:ring-[#123D35]"
+                />
+                <span>Remember session token</span>
+              </label>
+            </div>
 
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <label className="block text-xs font-semibold uppercase tracking-wider text-[#6D7975] mb-1">
-                    Portal Role *
-                  </label>
-                  <select
-                    value={role}
-                    onChange={(e) => setRole(e.target.value as UserRole)}
-                    className="w-full px-2.5 py-2 text-sm bg-white border border-[#E2E6E1] rounded-lg text-[#192A27] focus:outline-none focus:border-[#16856B]"
-                  >
-                    <option value="student">Student</option>
-                    <option value="faculty">Faculty Mentor</option>
-                    <option value="admin">Institutional Admin</option>
-                  </select>
-                </div>
+            <button
+              type="submit"
+              disabled={loading}
+              className="w-full py-2.5 px-4 bg-[#123D35] hover:bg-[#0B2925] text-white font-semibold text-sm rounded-lg shadow-sm transition-colors flex items-center justify-center gap-2 disabled:opacity-50 mt-2"
+            >
+              {loading ? (
+                <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+              ) : (
+                <>
+                  <span>Sign In</span>
+                  <ArrowRight className="w-4 h-4" />
+                </>
+              )}
+            </button>
+          </form>
 
-                <div>
-                  <label className="block text-xs font-semibold uppercase tracking-wider text-[#6D7975] mb-1">
-                    Department
-                  </label>
-                  <div className="relative">
-                    <Building className="w-3.5 h-3.5 absolute left-2.5 top-1/2 -translate-y-1/2 text-[#6D7975]" />
-                    <input
-                      type="text"
-                      value={department}
-                      onChange={(e) => setDepartment(e.target.value)}
-                      placeholder="Computer Science"
-                      className="w-full pl-8 pr-2.5 py-2 text-sm bg-white border border-[#E2E6E1] rounded-lg text-[#192A27] focus:outline-none focus:border-[#16856B]"
-                    />
-                  </div>
-                </div>
-              </div>
-
-              <div>
-                <label className="block text-xs font-semibold uppercase tracking-wider text-[#6D7975] mb-1">
-                  Password (min 6 characters) *
-                </label>
-                <div className="relative">
-                  <Lock className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-[#6D7975]" />
-                  <input
-                    type={showPassword ? 'text' : 'password'}
-                    required
-                    minLength={6}
-                    value={password}
-                    onChange={(e) => setPassword(e.target.value)}
-                    placeholder="••••••••"
-                    className="w-full pl-9 pr-10 py-2 text-sm bg-white border border-[#E2E6E1] rounded-lg text-[#192A27] focus:outline-none focus:ring-2 focus:ring-[#16856B]/20 focus:border-[#16856B]"
-                  />
-                  <button
-                    type="button"
-                    onClick={() => setShowPassword(!showPassword)}
-                    className="absolute right-3 top-1/2 -translate-y-1/2 text-[#6D7975] hover:text-[#192A27]"
-                  >
-                    {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-                  </button>
-                </div>
-              </div>
-
-              <div>
-                <label className="block text-xs font-semibold uppercase tracking-wider text-[#6D7975] mb-1">
-                  Confirm Password *
-                </label>
-                <div className="relative">
-                  <Lock className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-[#6D7975]" />
-                  <input
-                    type={showPassword ? 'text' : 'password'}
-                    required
-                    minLength={6}
-                    value={confirmPassword}
-                    onChange={(e) => setConfirmPassword(e.target.value)}
-                    placeholder="••••••••"
-                    className="w-full pl-9 pr-3.5 py-2 text-sm bg-white border border-[#E2E6E1] rounded-lg text-[#192A27] focus:outline-none focus:ring-2 focus:ring-[#16856B]/20 focus:border-[#16856B]"
-                  />
-                </div>
-              </div>
-
-              <button
-                type="submit"
-                disabled={loading}
-                className="w-full py-2.5 px-4 bg-[#123D35] hover:bg-[#0B2925] text-white font-semibold text-sm rounded-lg shadow-sm transition-colors flex items-center justify-center gap-2 disabled:opacity-50 mt-2"
-              >
-                {loading ? (
-                  <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                ) : (
-                  <>
-                    <span>Create Account with Supabase</span>
-                    <ArrowRight className="w-4 h-4" />
-                  </>
-                )}
-              </button>
-            </form>
-          )}
-
-          {/* Supabase Security Footer */}
+          {/* Security Footer */}
           <div className="p-3 bg-white border border-[#E2E6E1] rounded-xl flex items-center justify-between text-[11px] text-[#6D7975]">
             <div className="flex items-center gap-2">
               <ShieldCheck className="w-4 h-4 text-[#16856B] shrink-0" />
-              <span>Protected by <strong>Supabase Auth</strong></span>
+              <span>Enterprise-Grade Authentication</span>
             </div>
             <span className="font-mono text-[10px] text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded border border-emerald-200">
               JWT Secured
@@ -516,8 +279,7 @@ export const LoginPage: React.FC = () => {
                   <div className="flex items-center gap-1.5">
                     <span className="text-xs font-bold text-emerald-950">Have Inquiries or Need Guidance?</span>
                     <span className="inline-flex items-center gap-0.5 text-[9px] font-bold uppercase px-1.5 py-0.2 rounded bg-white text-emerald-800 border border-emerald-300">
-                      <Database className="w-2 h-2" />
-                      Supabase Live
+                      Active
                     </span>
                   </div>
                   <p className="text-[11px] text-emerald-800/80">Submit your queries directly to our admissions & faculty team</p>
