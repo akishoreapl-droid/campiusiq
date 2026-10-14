@@ -127,12 +127,45 @@ export async function updateInquiryStatus(id: string, status: 'new' | 'in_review
 
 // ---------------- 2. STUDENT PROFILES & ENRICHMENT ----------------
 
+const DEPT_ID_TO_NAME: Record<string, string> = {
+  '10000000-0000-0000-0000-000000000001': 'Computer Science',
+  '10000000-0000-0000-0000-000000000002': 'Information Technology',
+  '10000000-0000-0000-0000-000000000003': 'Electronics & Comm.',
+  '10000000-0000-0000-0000-000000000004': 'Data Science',
+  '10000000-0000-0000-0000-000000000005': 'Mechanical',
+};
+
+function resolveDepartmentName(deptData?: any, deptId?: string, directDept?: string): string {
+  if (deptId && DEPT_ID_TO_NAME[deptId]) {
+    return DEPT_ID_TO_NAME[deptId];
+  }
+  const deptObj = Array.isArray(deptData) ? deptData[0] : deptData;
+  if (deptObj && typeof deptObj === 'object') {
+    const combined = `${deptObj.name || ''} ${deptObj.code || ''}`.toLowerCase();
+    if (combined.includes('data') || combined.includes('ds')) return 'Data Science';
+    if (combined.includes('info') || combined.includes('it')) return 'Information Technology';
+    if (combined.includes('elec') || combined.includes('comm') || combined.includes('ece')) return 'Electronics & Comm.';
+    if (combined.includes('mech')) return 'Mechanical';
+    if (combined.includes('comp') || combined.includes('cse')) return 'Computer Science';
+  }
+  if (directDept) {
+    const combined = directDept.toLowerCase();
+    if (combined.includes('data') || combined.includes('ds')) return 'Data Science';
+    if (combined.includes('info') || combined.includes('it')) return 'Information Technology';
+    if (combined.includes('elec') || combined.includes('comm') || combined.includes('ece')) return 'Electronics & Comm.';
+    if (combined.includes('mech')) return 'Mechanical';
+    if (combined.includes('comp') || combined.includes('cse')) return 'Computer Science';
+  }
+  return 'Computer Science';
+}
+
 export async function fetchStudentsFromDb(): Promise<Student[]> {
   try {
     const { data: profiles, error } = await supabase
       .from('student_profiles')
       .select(`
         *,
+        departments (*),
         placement_profiles (*)
       `)
       .order('roll_number', { ascending: true });
@@ -142,12 +175,14 @@ export async function fetchStudentsFromDb(): Promise<Student[]> {
     }
 
     return profiles.map((p: any) => {
-      const placement = p.placement_profiles || {};
+      const placement = Array.isArray(p.placement_profiles) ? (p.placement_profiles[0] || {}) : (p.placement_profiles || {});
+      const dept = resolveDepartmentName(p.departments, p.department_id, p.department);
+
       const rawInput: RawStudentInput = {
         studentId: p.roll_number,
         name: p.name,
         email: p.email,
-        department: 'Computer Science',
+        department: dept,
         year: p.current_year || 3,
         semester: p.current_semester || 5,
         cgpa: Number(p.cgpa) || 0,

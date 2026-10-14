@@ -88,22 +88,42 @@ export const AdminOverview: React.FC = () => {
 
   // Department Comparison Data
   const departmentStats = useMemo(() => {
-    const depts = ['Computer Science', 'Information Technology', 'Data Science', 'Electronics & Comm.', 'Mechanical'];
-    return depts.map(d => {
-      const cohort = students.filter(s => s.department === d);
-      const total = cohort.length || 1;
-      const avgScore = Number((cohort.reduce((sum, s) => sum + s.studentSuccessScore, 0) / total).toFixed(1));
-      const avgAtt = Number((cohort.reduce((sum, s) => sum + s.attendancePercentage, 0) / total).toFixed(1));
-      const avgPlace = Number((cohort.reduce((sum, s) => sum + s.placementReadinessScore, 0) / total).toFixed(1));
-      const atRiskPct = Number(((cohort.filter(s => s.riskLevel === 'high').length / total) * 100).toFixed(1));
+    const depts = [
+      { key: 'Computer Science', label: 'CSE', fullName: 'Computer Science' },
+      { key: 'Information Technology', label: 'IT', fullName: 'Information Technology' },
+      { key: 'Data Science', label: 'Data Science', fullName: 'Data Science' },
+      { key: 'Electronics & Comm.', label: 'ECE', fullName: 'Electronics & Comm.' },
+      { key: 'Mechanical', label: 'Mechanical Engineering', fullName: 'Mechanical' },
+    ];
+
+    return depts.map(({ key, label, fullName }) => {
+      const cohort = students.filter(s => {
+        if (!s.department) return false;
+        if (s.department === key || s.department === fullName) return true;
+        const norm = s.department.toLowerCase().trim();
+        if (key === 'Computer Science' && (norm.includes('comp') || norm === 'cse')) return true;
+        if (key === 'Information Technology' && (norm.includes('info') || norm === 'it')) return true;
+        if (key === 'Data Science' && (norm.includes('data') || norm === 'ds')) return true;
+        if (key === 'Electronics & Comm.' && (norm.includes('elec') || norm.includes('comm') || norm === 'ece')) return true;
+        if (key === 'Mechanical' && (norm.includes('mech') || norm.includes('mechanical'))) return true;
+        return false;
+      });
+
+      const total = cohort.length;
+      const hasData = total > 0;
+      const avgScore = hasData ? Number((cohort.reduce((sum, s) => sum + s.studentSuccessScore, 0) / total).toFixed(1)) : 0;
+      const avgAtt = hasData ? Number((cohort.reduce((sum, s) => sum + s.attendancePercentage, 0) / total).toFixed(1)) : 0;
+      const avgPlace = hasData ? Number((cohort.reduce((sum, s) => sum + s.placementReadinessScore, 0) / total).toFixed(1)) : 0;
+      const atRiskPct = hasData ? Number(((cohort.filter(s => s.riskLevel === 'high').length / total) * 100).toFixed(1)) : 0;
 
       return {
-        department: d.replace('Electronics & Comm.', 'ECE').replace('Information Technology', 'IT').replace('Computer Science', 'CSE'),
-        fullName: d,
+        department: label,
+        fullName,
         avgSuccessScore: avgScore,
         attendance: avgAtt,
         placementReadiness: avgPlace,
         atRiskPercentage: atRiskPct,
+        studentCount: total,
       };
     });
   }, [students]);
