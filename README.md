@@ -6,7 +6,7 @@
 
 ## 🌟 Executive Overview & Present Situation
 
-**CampusIQ** is an institutional early-warning and academic acceleration platform. It synthesizes fragmented university data points—Student Information Systems (SIS), biometric attendance logs, LMS engagement metrics, coding benchmarks, and mock interview evaluations—into deterministic, transparent student intelligence.
+**CampusIQ** is an institutional early-warning and academic acceleration platform. It synthesizes fragmented university data points—Student Information Systems (SIS), LMS engagement metrics, coding benchmarks, and mock interview evaluations—into deterministic, transparent student intelligence.
 
 ### 📌 Current Implementation Status
 * **Frontend**: Fully built with **React 19**, **TypeScript**, **Vite 8**, and **Tailwind CSS v4**. Responsive, editorial-grade UI with deep emerald accents (`#0B2925`, `#16856B`) and ivory palettes (`#F7F6F1`).
