@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { useApp } from './context/AppContext';
 import { AppShell } from './components/layout/AppShell';
 import { LoginPage } from './pages/auth/LoginPage';
@@ -16,9 +16,19 @@ import { AiStudyTutor } from './pages/student/AiStudyTutor';
 import { LearningPlanner } from './pages/student/LearningPlanner';
 import { QuizPractice } from './pages/student/QuizPractice';
 import { CareerCopilot } from './pages/student/CareerCopilot';
+import { isRouteAllowedForRole, getDefaultDashboardForRole } from './utils/auth';
 
 export const App: React.FC = () => {
-  const { currentUser, currentRoute, authLoading } = useApp();
+  const { currentUser, currentRoute, authLoading, navigate } = useApp();
+
+  // Guard against unauthorized route attempts via URL manipulation
+  useEffect(() => {
+    if (currentUser && currentRoute !== '/login') {
+      if (!isRouteAllowedForRole(currentUser.role, currentRoute)) {
+        navigate(getDefaultDashboardForRole(currentUser.role));
+      }
+    }
+  }, [currentUser, currentRoute, navigate]);
 
   // If initial auth session is still checking, show loading screen
   if (authLoading) {
@@ -38,36 +48,42 @@ export const App: React.FC = () => {
   }
 
   const renderCurrentPage = () => {
-    // Admin Routes
-    if (currentRoute === '/admin/overview') return <AdminOverview />;
-    if (currentRoute === '/admin/students') return <StudentDirectory />;
-    if (currentRoute.startsWith('/admin/students/')) return <StudentProfile />;
-    if (currentRoute === '/admin/placement') return <PlacementIntelligence />;
-    if (currentRoute === '/admin/segments') return <RiskSegmentation />;
-    if (currentRoute === '/admin/insights') return <AiInsights />;
-    if (currentRoute === '/admin/interventions') return <InterventionCenter />;
-    if (currentRoute === '/admin/data') return <DataManagement />;
+    // 1. ADMIN ROLE ONLY: Strict access to Admin functionality
+    if (currentUser.role === 'admin') {
+      if (currentRoute === '/admin/overview') return <AdminOverview />;
+      if (currentRoute === '/admin/students') return <StudentDirectory />;
+      if (currentRoute.startsWith('/admin/students/')) return <StudentProfile />;
+      if (currentRoute === '/admin/placement') return <PlacementIntelligence />;
+      if (currentRoute === '/admin/segments') return <RiskSegmentation />;
+      if (currentRoute === '/admin/insights') return <AiInsights />;
+      if (currentRoute === '/admin/interventions') return <InterventionCenter />;
+      if (currentRoute === '/admin/data') return <DataManagement />;
+      return <AdminOverview />;
+    }
 
-    // Faculty Routes
-    if (currentRoute === '/faculty/overview') return <FacultyOverview />;
-    if (currentRoute === '/faculty/students') return <FacultyOverview />;
-    if (currentRoute === '/faculty/interventions') return <InterventionCenter />;
-    if (currentRoute === '/faculty/student-inspect') return <StudentProfile />;
+    // 2. FACULTY ROLE ONLY: Strict access to Faculty functionality
+    if (currentUser.role === 'faculty') {
+      if (currentRoute === '/faculty/overview') return <FacultyOverview />;
+      if (currentRoute === '/faculty/students') return <FacultyOverview />;
+      if (currentRoute === '/faculty/interventions') return <InterventionCenter />;
+      if (currentRoute === '/faculty/student-inspect') return <StudentProfile />;
+      return <FacultyOverview />;
+    }
 
-    // Student Routes
-    if (currentRoute === '/student/overview') return <StudentPortal />;
-    if (currentRoute === '/student/tutor') return <AiStudyTutor />;
-    if (currentRoute === '/student/planner') return <LearningPlanner />;
-    if (currentRoute === '/student/practice') return <QuizPractice />;
-    if (currentRoute === '/student/career') return <CareerCopilot />;
-    if (currentRoute === '/student/academics') return <StudentPortal />;
-    if (currentRoute === '/student/placement') return <CareerCopilot />;
-    if (currentRoute === '/student/action-plan') return <LearningPlanner />;
+    // 3. STUDENT ROLE ONLY: Strict access to Student functionality
+    if (currentUser.role === 'student') {
+      if (currentRoute === '/student/overview') return <StudentPortal />;
+      if (currentRoute === '/student/tutor') return <AiStudyTutor />;
+      if (currentRoute === '/student/planner') return <LearningPlanner />;
+      if (currentRoute === '/student/practice') return <QuizPractice />;
+      if (currentRoute === '/student/career') return <CareerCopilot />;
+      if (currentRoute === '/student/academics') return <StudentPortal />;
+      if (currentRoute === '/student/placement') return <CareerCopilot />;
+      if (currentRoute === '/student/action-plan') return <LearningPlanner />;
+      return <StudentPortal />;
+    }
 
-    // Fallback to role overview
-    if (currentUser.role === 'admin') return <AdminOverview />;
-    if (currentUser.role === 'faculty') return <FacultyOverview />;
-    return <StudentPortal />;
+    return <LoginPage />;
   };
 
   return (

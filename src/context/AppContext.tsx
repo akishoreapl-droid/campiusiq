@@ -46,10 +46,12 @@ import {
   updateFlashcardInDb,
   saveTutorInquiryToDb,
   mapSupabaseUserToAppUser,
+  resolveSupabaseUserToAppUser,
   authSignIn,
   authSignUp,
   authSignOut
 } from '../lib/supabase';
+import { isRouteAllowedForRole, getDefaultDashboardForRole } from '../utils/auth';
 
 export interface ToastMessage {
   id: string;
@@ -245,14 +247,14 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     }
 
     if (currentUser) {
-      if (currentUser.role === 'student' && !route.startsWith('/student')) {
-        addToast('Access Restricted: Student Portal Active', 'warning');
-        setCurrentRoute('/student/overview');
+      if (route === '/login') {
+        setCurrentRoute(getDefaultDashboardForRole(currentUser.role));
         return;
       }
-      if (currentUser.role === 'faculty' && route.startsWith('/admin')) {
-        addToast('Access Restricted: Faculty permissions active', 'warning');
-        setCurrentRoute('/faculty/overview');
+
+      if (!isRouteAllowedForRole(currentUser.role, route)) {
+        addToast(`Access Restricted: ${currentUser.role.toUpperCase()} account cannot access ${route}`, 'warning');
+        setCurrentRoute(getDefaultDashboardForRole(currentUser.role));
         return;
       }
     }
@@ -311,38 +313,58 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   useEffect(() => {
     let isMounted = true;
 
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      if (!isMounted) return;
-      if (session?.user) {
-        const appUser = mapSupabaseUserToAppUser(session.user);
-        setCurrentUser(appUser);
-        if (currentRoute === '/login') {
-          if (appUser.role === 'admin') setCurrentRoute('/admin/overview');
-          else if (appUser.role === 'faculty') setCurrentRoute('/faculty/overview');
-          else setCurrentRoute('/student/overview');
-        }
-      } else {
-        setCurrentUser(null);
-        setCurrentRoute('/login');
-      }
-      setAuthLoading(false);
-    }).catch(() => {
-      if (isMounted) {
-        setCurrentUser(null);
-        setAuthLoading(false);
-      }
-    });
+    const checkSession = async () => {
+      try {
+        const { data: { session } } = await supabase.auth.getSession();
+        if (!isMounted) return;
 
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+        if (session?.user) {
+          const appUser = await resolveSupabaseUserToAppUser(session.user);
+          if (appUser && isMounted) {
+            setCurrentUser(appUser);
+            if (currentRoute === '/login' || !isRouteAllowedForRole(appUser.role, currentRoute)) {
+              setCurrentRoute(getDefaultDashboardForRole(appUser.role));
+            }
+          } else if (isMounted) {
+            await supabase.auth.signOut();
+            setCurrentUser(null);
+            setCurrentRoute('/login');
+          }
+        } else if (isMounted) {
+          setCurrentUser(null);
+          setCurrentRoute('/login');
+        }
+      } catch {
+        if (isMounted) {
+          setCurrentUser(null);
+          setCurrentRoute('/login');
+        }
+      } finally {
+        if (isMounted) setAuthLoading(false);
+      }
+    };
+
+    checkSession();
+
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (_event, session) => {
       if (!isMounted) return;
       if (session?.user) {
-        const appUser = mapSupabaseUserToAppUser(session.user);
-        setCurrentUser(appUser);
-      } else {
+        const appUser = await resolveSupabaseUserToAppUser(session.user);
+        if (appUser && isMounted) {
+          setCurrentUser(appUser);
+          if (currentRoute === '/login' || !isRouteAllowedForRole(appUser.role, currentRoute)) {
+            setCurrentRoute(getDefaultDashboardForRole(appUser.role));
+          }
+        } else if (isMounted) {
+          await supabase.auth.signOut();
+          setCurrentUser(null);
+          setCurrentRoute('/login');
+        }
+      } else if (isMounted) {
         setCurrentUser(null);
         setCurrentRoute('/login');
       }
-      setAuthLoading(false);
+      if (isMounted) setAuthLoading(false);
     });
 
     // Populate data from DB
@@ -357,11 +379,22 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   const signIn = async (email: string, password: string) => {
     const result = await authSignIn(email, password);
     if (result.success && result.user) {
-      const appUser = mapSupabaseUserToAppUser(result.user);
+      const appUser = await resolveSupabaseUserToAppUser(result.user);
+      if (!appUser || !appUser.role) {
+        await supabase.auth.signOut();
+        setCurrentUser(null);
+        setCurrentRoute('/login');
+        return {
+          success: false,
+          error: 'Access Denied: No valid institutional role assigned to your account in the database. Please contact system administrator.'
+        };
+      }
+
       setCurrentUser(appUser);
-      if (appUser.role === 'admin') setCurrentRoute('/admin/overview');
-      else if (appUser.role === 'faculty') setCurrentRoute('/faculty/overview');
-      else setCurrentRoute('/student/overview');
+      // Strictly redirect to assigned dashboard based on database role
+      const targetDashboard = getDefaultDashboardForRole(appUser.role);
+      setCurrentRoute(targetDashboard);
+
       addToast(`Welcome back, ${appUser.name}! (${appUser.role.toUpperCase()})`, 'success');
       refreshDataFromDb();
       return { success: true };

@@ -1,6 +1,5 @@
 import React, { useState } from 'react';
 import { useApp } from '../../context/AppContext';
-import { DEMO_USERS } from '../../data/mockData';
 import { 
   LayoutDashboard, 
   Users, 
@@ -38,7 +37,6 @@ export const AppShell: React.FC<AppShellProps> = ({ children }) => {
     currentRoute,
     navigate,
     logout,
-    login,
     academicTerm,
     setAcademicTerm,
     notifications,
@@ -58,7 +56,6 @@ export const AppShell: React.FC<AppShellProps> = ({ children }) => {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [showNotifications, setShowNotifications] = useState(false);
   const [showUserMenu, setShowUserMenu] = useState(false);
-  const [showDemoRoleModal, setShowDemoRoleModal] = useState(false);
 
   // Define navigation items based on current role
   const getNavItems = () => {
@@ -127,13 +124,6 @@ export const AppShell: React.FC<AppShellProps> = ({ children }) => {
         <div className="px-5 py-3 bg-white/5 border-b border-white/10">
           <div className="flex items-center justify-between text-xs mb-1">
             <span className="text-[#A9B5AC] font-medium text-[11px] uppercase tracking-wider">Active Workspace</span>
-            <button
-              onClick={() => setShowDemoRoleModal(true)}
-              className="text-[11px] font-semibold text-[#16856B] hover:text-emerald-300 underline decoration-dotted transition-colors"
-              title="Switch demo persona"
-            >
-              Switch Role
-            </button>
           </div>
           <div className="flex items-center justify-between text-xs font-semibold text-white">
             <span className="capitalize flex items-center gap-1.5">
@@ -260,14 +250,7 @@ export const AppShell: React.FC<AppShellProps> = ({ children }) => {
                 <span className="hidden sm:inline">Inquiry Form</span>
               </button>
 
-              {/* Demo Persona Switcher Button */}
-              <button
-                onClick={() => setShowDemoRoleModal(true)}
-                className="hidden sm:inline-flex items-center gap-1.5 text-xs font-semibold px-2.5 py-1.5 rounded-lg border border-[#16856B]/30 bg-[#E8F5F1] text-[#123D35] hover:bg-[#d5eee5] transition-colors"
-              >
-                <ShieldCheck className="w-3.5 h-3.5 text-[#16856B]" />
-                <span>Demo Roles</span>
-              </button>
+
 
               {/* Notification Bell Dropdown */}
               <div className="relative">
@@ -347,16 +330,7 @@ export const AppShell: React.FC<AppShellProps> = ({ children }) => {
                         Role: {currentUser?.role}
                       </span>
                     </div>
-                    <button
-                      onClick={() => {
-                        setShowUserMenu(false);
-                        setShowDemoRoleModal(true);
-                      }}
-                      className="w-full text-left px-4 py-2 text-xs text-[#192A27] hover:bg-[#F7F6F1] flex items-center gap-2"
-                    >
-                      <ShieldCheck className="w-4 h-4 text-[#16856B]" />
-                      Switch Demo Persona
-                    </button>
+
                     <button
                       onClick={() => {
                         setShowUserMenu(false);
@@ -423,15 +397,7 @@ export const AppShell: React.FC<AppShellProps> = ({ children }) => {
             </div>
 
             <div className="pt-4 border-t border-white/10">
-              <button
-                onClick={() => {
-                  setMobileMenuOpen(false);
-                  setShowDemoRoleModal(true);
-                }}
-                className="w-full mb-2 py-2 text-xs font-semibold text-center rounded-lg bg-white/10 hover:bg-white/20 text-white"
-              >
-                Switch Demo Account
-              </button>
+
               <button
                 onClick={() => {
                   setMobileMenuOpen(false);
@@ -446,64 +412,7 @@ export const AppShell: React.FC<AppShellProps> = ({ children }) => {
         </div>
       )}
 
-      {/* ================= DEMO ROLE SWITCHER MODAL ================= */}
-      {showDemoRoleModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-[#0B2925]/60 backdrop-blur-xs">
-          <div className="bg-white rounded-2xl border border-[#E2E6E1] shadow-xl w-full max-w-md p-6">
-            <div className="flex items-center justify-between pb-3 border-b border-[#E2E6E1] mb-4">
-              <div>
-                <h3 className="text-base font-bold text-[#192A27]">Select Demo Persona</h3>
-                <p className="text-xs text-[#6D7975]">Evaluate role-specific intelligence flows</p>
-              </div>
-              <button
-                onClick={() => setShowDemoRoleModal(false)}
-                className="p-1 text-[#6D7975] hover:text-[#192A27] rounded-lg"
-              >
-                <X className="w-5 h-5" />
-              </button>
-            </div>
 
-            <div className="space-y-3">
-              {DEMO_USERS.map((user) => (
-                <div
-                  key={user.id}
-                  onClick={() => {
-                    login(user);
-                    setShowDemoRoleModal(false);
-                  }}
-                  className={`p-3.5 rounded-xl border cursor-pointer transition-all flex items-center justify-between ${
-                    currentUser?.id === user.id
-                      ? 'border-[#123D35] bg-[#E8F5F1] ring-2 ring-[#123D35]/10'
-                      : 'border-[#E2E6E1] hover:border-[#16856B] bg-white'
-                  }`}
-                >
-                  <div className="flex items-center gap-3">
-                    <img
-                      src={user.avatar}
-                      alt={user.name}
-                      className="w-10 h-10 rounded-full object-cover border border-[#E2E6E1]"
-                    />
-                    <div>
-                      <div className="flex items-center gap-2">
-                        <span className="text-xs font-bold text-[#192A27]">{user.name}</span>
-                        <span className="text-[10px] font-semibold uppercase px-1.5 py-0.5 rounded bg-white text-[#123D35] border border-[#E2E6E1]">
-                          {user.role}
-                        </span>
-                      </div>
-                      <p className="text-[11px] text-[#6D7975]">{user.title}</p>
-                    </div>
-                  </div>
-                  <ArrowRight className="w-4 h-4 text-[#16856B]" />
-                </div>
-              ))}
-            </div>
-
-            <p className="mt-4 text-[11px] text-[#6D7975] text-center bg-[#F7F6F1] p-2 rounded-lg">
-              Note: This is synthetic demonstration auth for the byteXL hackathon evaluation.
-            </p>
-          </div>
-        </div>
-      )}
 
       {/* ================= INQUIRY MODAL ================= */}
       <InquiryModal 

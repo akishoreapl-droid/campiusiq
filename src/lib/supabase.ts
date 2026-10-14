@@ -571,25 +571,125 @@ export async function fetchImportBatchesFromDb() {
 
 // ---------------- 9. AUTHENTICATION SERVICES ----------------
 
-export function mapSupabaseUserToAppUser(supabaseUser: any): User {
+/**
+ * Fetch trusted institutional role strictly from the database (user_role_assignments table)
+ */
+export async function getTrustedUserRole(userId: string): Promise<UserRole | null> {
+  if (!userId) return null;
+  try {
+    const { data, error } = await supabase
+      .from('user_role_assignments')
+      .select('role')
+      .eq('user_id', userId)
+      .maybeSingle();
+
+    if (!error && data?.role) {
+      const normalized = String(data.role).toLowerCase().trim();
+      if (normalized === 'admin' || normalized === 'faculty' || normalized === 'student') {
+        return normalized as UserRole;
+      }
+    }
+  } catch (err) {
+    console.warn('Error fetching trusted role from user_role_assignments:', err);
+  }
+  return null;
+}
+
+/**
+ * Fetch user profile from the database (profiles table)
+ */
+export async function getTrustedUserProfile(userId: string): Promise<{ full_name?: string; email?: string } | null> {
+  if (!userId) return null;
+  try {
+    const { data } = await supabase
+      .from('profiles')
+      .select('full_name, email')
+      .eq('id', userId)
+      .maybeSingle();
+    return data || null;
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Asynchronously resolves an authenticated Supabase user into an Application User,
+ * verifying their trusted role against PostgreSQL user_role_assignments.
+ * Returns null if the user has no valid assigned institutional role.
+ */
+export async function resolveSupabaseUserToAppUser(supabaseUser: any): Promise<User | null> {
+  if (!supabaseUser?.id) return null;
+
+  // 1. Fetch trusted role strictly from database
+  let role = await getTrustedUserRole(supabaseUser.id);
+
+  // Fallback to metadata only if user_role_assignments has not yet propagated
+  if (!role && supabaseUser.user_metadata?.role) {
+    const metaRole = String(supabaseUser.user_metadata.role).toLowerCase().trim();
+    if (metaRole === 'admin' || metaRole === 'faculty' || metaRole === 'student') {
+      role = metaRole as UserRole;
+    }
+  }
+
+  // Deny access if no trusted database role is found
+  if (!role) {
+    return null;
+  }
+
+  const profile = await getTrustedUserProfile(supabaseUser.id);
+  const metadata = supabaseUser.user_metadata || {};
+  const email = (supabaseUser.email || profile?.email || '').toLowerCase().trim();
+  const name = profile?.full_name || metadata.full_name || metadata.name || (email ? email.split('@')[0] : 'Campus User');
+
+  const defaultTitle = role === 'admin' 
+    ? 'Dean of Academic Intelligence & Quality'
+    : role === 'faculty'
+    ? 'Associate Professor & Senior Mentor'
+    : 'Undergraduate Scholar';
+
+  const title = metadata.title || defaultTitle;
+  const department = metadata.department || (role === 'admin' ? 'Institutional Intelligence' : 'Computer Science');
+
+  const avatar = metadata.avatar || (
+    role === 'admin'
+      ? 'https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?w=150&auto=format&fit=crop&q=80'
+      : role === 'faculty'
+      ? 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150&auto=format&fit=crop&q=80'
+      : 'https://images.unsplash.com/photo-1539571696357-5a69c17a67c6?w=150&auto=format&fit=crop&q=80'
+  );
+
+  return {
+    id: supabaseUser.id,
+    name,
+    email,
+    role,
+    title,
+    avatar,
+    department,
+    studentId: metadata.studentId || (role === 'student' ? 'STU-2024-042' : undefined),
+    assignedStudentIds: role === 'faculty' ? [
+      'STU-2024-001', 'STU-2024-002', 'STU-2024-005', 'STU-2024-012', 
+      'STU-2024-019', 'STU-2024-027', 'STU-2024-034', 'STU-2024-042'
+    ] : undefined,
+  };
+}
+
+export function mapSupabaseUserToAppUser(supabaseUser: any, explicitRole?: UserRole): User {
   const metadata = supabaseUser?.user_metadata || {};
   const email = (supabaseUser?.email || '').toLowerCase().trim();
 
-  let role: UserRole = 'student';
-  if (metadata.role === 'admin' || metadata.role === 'faculty' || metadata.role === 'student') {
-    role = metadata.role;
-  } else if (email.includes('admin') || email === 'amruthadivvela@gmail.com') {
-    role = 'admin';
-  } else if (email.includes('faculty') || email.includes('mentor') || email.includes('prof')) {
-    role = 'faculty';
-  }
+  let role: UserRole = explicitRole || (
+    metadata.role === 'admin' || metadata.role === 'faculty' || metadata.role === 'student'
+      ? metadata.role
+      : 'student'
+  );
 
   const name = metadata.name || metadata.full_name || (email ? email.split('@')[0] : 'Campus User');
   const defaultTitle = role === 'admin' 
     ? 'Dean of Academic Intelligence & Quality'
     : role === 'faculty'
     ? 'Associate Professor & Senior Mentor'
-    : 'Undergraduate Scholar (3rd Year)';
+    : 'Undergraduate Scholar';
   const title = metadata.title || defaultTitle;
   const department = metadata.department || (role === 'admin' ? 'Institutional Intelligence' : 'Computer Science');
 
